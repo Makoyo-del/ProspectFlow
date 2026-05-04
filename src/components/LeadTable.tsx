@@ -24,6 +24,12 @@ interface LeadTableProps {
   onUnlock: () => void;
 }
 
+const ensureAbsoluteUrl = (url?: string) => {
+  if (!url) return "#";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `https://${url}`;
+};
+
 export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProps) {
   const [payConfig, setPayConfig] = useState<any>(null);
 
@@ -196,7 +202,11 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
                         </div>
                       </td>
                       <td className={`whitespace-nowrap px-3 py-4 text-sm text-blue-600 ${isMasked ? "blur-sm select-none" : ""}`}>
-                        {isMasked ? "https://example.com" : lead.website || "N/A"}
+                        {isMasked ? "https://example.com" : (
+                          <a href={ensureAbsoluteUrl(lead.website)} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                            {lead.website || "N/A"}
+                          </a>
+                        )}
                       </td>
                       <td className={`whitespace-nowrap px-3 py-4 text-sm text-gray-500 ${isMasked ? "blur-md select-none opacity-50" : ""}`}>
                         {isMasked ? "+1 234 567 890" : lead.phone || "N/A"}
@@ -220,8 +230,9 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
                           </a>
                           {lead.website && (
                             <a
-                              href={isMasked ? "#unlock" : lead.website}
+                              href={isMasked ? "#unlock" : ensureAbsoluteUrl(lead.website)}
                               target={isMasked ? "_self" : "_blank"}
+                              rel="noopener noreferrer"
                               className={`p-2 rounded-full transition-all ${isMasked ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                               title="Visit Website"
                             >
