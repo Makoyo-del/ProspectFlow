@@ -52,6 +52,7 @@ export async function verifyPaystackPayment(reference: string) {
     headers: {
       Authorization: `Bearer ${secretKey}`,
     },
+    cache: "no-store",
   });
 
   const data = await res.json();

@@ -51,20 +51,47 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
 
   const initializePayment = usePaystackPayment(payConfig || {});
 
-  const onSuccess = (reference: any) => {
+  const onSuccess = (response: any) => {
     setIsVerifying(true);
+    
+    // Handle both {reference: '...'} and '...' string reference
+    const ref = typeof response === 'string' ? response : response.reference;
+    
+    if (!ref) {
+      alert("Payment reference missing. Please contact support.");
+      setIsVerifying(false);
+      return;
+    }
+
     fetch("/api/verify-payment", {
       method: "POST",
-      body: JSON.stringify({ reference: reference.reference }),
-    }).then(res => res.json()).then(data => {
-      if (data.success) {
-        onUnlock();
-      } else {
-        alert("Payment verification failed. Please contact support.");
-      }
-    }).finally(() => {
-      setIsVerifying(false);
-    });
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reference: ref }),
+    })
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Server error: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data.success) {
+          // Persist the unlock status
+          localStorage.setItem(`unlocked_${ref}`, "true");
+          localStorage.setItem("last_payment_ref", ref);
+          onUnlock();
+        } else {
+          alert("Payment verification failed: " + (data.error || "Unknown error"));
+        }
+      })
+      .catch(err => {
+        console.error("Verification failed:", err);
+        alert("Payment verification failed. Please check your connection and try again.");
+      })
+      .finally(() => {
+        setIsVerifying(false);
+      });
   };
 
   const onClose = () => {

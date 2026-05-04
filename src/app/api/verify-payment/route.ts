@@ -9,15 +9,18 @@ export async function POST(request: Request) {
   }
 
   try {
+    console.log(`Verifying payment for reference: ${reference}`);
     const isValid = await verifyPaystackPayment(reference);
+    
     if (isValid) {
-      // In a real app, you might save this reference to a DB or a cookie/session
+      console.log(`Payment verified successfully for: ${reference}`);
       return NextResponse.json({ success: true });
     } else {
-      return NextResponse.json({ success: false, error: "Invalid payment" }, { status: 400 });
+      console.warn(`Payment verification failed for: ${reference}`);
+      return NextResponse.json({ success: false, error: "Invalid payment status from Paystack" }, { status: 400 });
     }
   } catch (error: any) {
-    console.error("Verification error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error(`Fatal verification error for ${reference}:`, error);
+    return NextResponse.json({ error: error.message || "Internal server error during verification" }, { status: 500 });
   }
 }

@@ -20,6 +20,12 @@ export default function SearchResults() {
   const [isUnlocked, setIsUnlocked] = useState(false);
 
   useEffect(() => {
+    // Check if the user has already unlocked this session
+    const lastRef = localStorage.getItem("last_payment_ref");
+    if (lastRef && localStorage.getItem(`unlocked_${lastRef}`) === "true") {
+      setIsUnlocked(true);
+    }
+
     if (city && niche) {
       setLoading(true);
       fetch(`/api/search?city=${encodeURIComponent(city)}&niche=${encodeURIComponent(niche)}&radius=${radius}`)
