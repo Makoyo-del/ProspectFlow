@@ -3,9 +3,14 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import SearchResultsClient from "./SearchResultsClient";
 
-export async function generateMetadata({ params }: { params: { city: string, niche: string } }): Promise<Metadata> {
-  const city = decodeURIComponent(params.city);
-  const niche = decodeURIComponent(params.niche);
+type Props = {
+  params: Promise<{ city: string; niche: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { city: rawCity, niche: rawNiche } = await params;
+  const city = decodeURIComponent(rawCity);
+  const niche = decodeURIComponent(rawNiche);
   
   return {
     title: `Best ${niche} Leads in ${city} | ProspectFlow`,
@@ -13,9 +18,10 @@ export async function generateMetadata({ params }: { params: { city: string, nic
   };
 }
 
-export default function dynamicSEOPage({ params }: { params: { city: string, niche: string } }) {
-  const city = decodeURIComponent(params.city);
-  const niche = decodeURIComponent(params.niche);
+export default async function dynamicSEOPage({ params }: Props) {
+  const { city: rawCity, niche: rawNiche } = await params;
+  const city = decodeURIComponent(rawCity);
+  const niche = decodeURIComponent(rawNiche);
 
   return (
     <main className="flex-1 bg-white">
