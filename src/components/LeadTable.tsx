@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle, Ghost, Share2, Lock, Download, FileText, Phone, Globe, MessageCircle, ExternalLink, Wand2, Copy, Check, Database } from "lucide-react";
 import { usePaystackPayment } from "react-paystack";
 import { exportToCSV, exportToPDF } from "@/lib/export";
@@ -25,18 +25,22 @@ interface LeadTableProps {
 }
 
 export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProps) {
-  const config: any = {
-    reference: (new Date()).getTime().toString(),
-    email: "user@example.com", // In real app, ask for email
-    amount: Number(process.env.NEXT_PUBLIC_PAYMENT_AMOUNT) || 1000,
-    currency: process.env.NEXT_PUBLIC_PAYMENT_CURRENCY || "USD",
-    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_placeholder",
-  };
+  const [payConfig, setPayConfig] = useState<any>(null);
 
-  const initializePayment = usePaystackPayment(config);
+  useEffect(() => {
+    // Generate config only on client to prevent hydration mismatch (Error #419)
+    setPayConfig({
+      reference: (new Date()).getTime().toString(),
+      email: "prospect@flow.app",
+      amount: Number(process.env.NEXT_PUBLIC_PAYMENT_AMOUNT) || 130000,
+      currency: process.env.NEXT_PUBLIC_PAYMENT_CURRENCY || "KES",
+      publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
+    });
+  }, []);
+
+  const initializePayment = usePaystackPayment(payConfig || {});
 
   const onSuccess = (reference: any) => {
-    // Verify on server
     fetch("/api/verify-payment", {
       method: "POST",
       body: JSON.stringify({ reference: reference.reference }),
@@ -45,6 +49,10 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
         onUnlock();
       }
     });
+  };
+
+  const onClose = () => {
+    console.log("Payment modal closed");
   };
 
   const [isCRMOpen, setIsCRMOpen] = useState(false);
@@ -126,7 +134,7 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
       
       <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-          <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg border border-gray-200">
+          <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg border border-gray-200 relative">
             <table className="min-w-full divide-y divide-gray-300">
               <thead className="bg-royal-blue text-white">
                 <tr>
@@ -282,16 +290,16 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
 
             <CRMModal isOpen={isCRMOpen} onClose={() => setIsCRMOpen(false)} />
             
-            {!isUnlocked && (
-              <div id="unlock" className="absolute inset-x-0 bottom-0 flex h-64 items-end justify-center bg-gradient-to-t from-white via-white/90 to-transparent pb-10">
+            {!isUnlocked && leads.length > 3 && (
+              <div id="unlock" className="absolute inset-x-0 bottom-0 flex h-[350px] items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent pb-10 z-10">
                 <div className="text-center">
                   <p className="mb-4 text-sm font-semibold text-royal-blue uppercase tracking-widest">Premium Content Locked</p>
                   <button
-                    onClick={() => initializePayment(onSuccess, onClose)}
+                    onClick={() => payConfig && initializePayment(onSuccess, onClose)}
                     className="flex items-center gap-3 rounded-full bg-bright-red px-12 py-5 text-xl font-bold text-white shadow-[0_20px_50px_rgba(255,0,0,0.3)] hover:scale-105 transition-all active:scale-95 animate-pulse"
                   >
                     <Lock className="h-6 w-6" />
-                    Unlock {leads.length - 3} More Leads for {process.env.NEXT_PUBLIC_PAYMENT_CURRENCY === 'KES' ? 'KES 1,300' : '$10'}
+                    Unlock {leads.length - 3} More Leads for KES 1,300
                   </button>
                   <p className="mt-4 text-xs text-gray-500">Secure payment via Paystack</p>
                 </div>
