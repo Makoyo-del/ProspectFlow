@@ -20,7 +20,27 @@ export default function SearchResults() {
   const [isUnlocked, setIsUnlocked] = useState(false);
 
   useEffect(() => {
-    // Check if the user has already unlocked this session
+    // 1. Check if we just came back from a redirect (Paystack callback)
+    const urlRef = searchParams.get("reference") || searchParams.get("trxref");
+    if (urlRef) {
+      console.log("Found reference in URL, verifying:", urlRef);
+      fetch("/api/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference: urlRef }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          localStorage.setItem(`unlocked_${urlRef}`, "true");
+          localStorage.setItem("last_payment_ref", urlRef);
+          setIsUnlocked(true);
+        }
+      })
+      .catch(err => console.error("URL verification failed:", err));
+    }
+
+    // 2. Check if the user has already unlocked this session from localStorage
     const lastRef = localStorage.getItem("last_payment_ref");
     if (lastRef && localStorage.getItem(`unlocked_${lastRef}`) === "true") {
       setIsUnlocked(true);

@@ -39,13 +39,26 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
   const currency = process.env.NEXT_PUBLIC_PAYMENT_CURRENCY || "KES";
 
   useEffect(() => {
+    // Generate a fresh reference
+    const ref = (new Date()).getTime().toString();
+    
     setPayConfig({
-      reference: (new Date()).getTime().toString(),
+      reference: ref,
       email: "prospect@flow.app",
-      // Paystack expects amount in lowest unit (cents/kobo)
       amount: displayAmount * 100, 
       currency: currency,
       publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
+      // Add callback_url for redirect flow (e.g. 3D Secure)
+      callback_url: window.location.href,
+      metadata: {
+        custom_fields: [
+          {
+            display_name: "Page URL",
+            variable_name: "page_url",
+            value: window.location.href
+          }
+        ]
+      }
     });
   }, [displayAmount, currency]);
 
