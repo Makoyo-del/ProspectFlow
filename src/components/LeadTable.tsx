@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle, Ghost, Share2, Lock, Download, FileText, Phone, Globe, MessageCircle, ExternalLink, Wand2, Copy, Check, Database } from "lucide-react";
+import { CheckCircle, Ghost, Share2, Lock, Download, FileText, Phone, Globe, MessageCircle, ExternalLink, Wand2, Copy, Check, Database, Loader2 } from "lucide-react";
 import { usePaystackPayment } from "react-paystack";
 import { exportToCSV, exportToPDF } from "@/lib/export";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,28 +32,38 @@ const ensureAbsoluteUrl = (url?: string) => {
 
 export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProps) {
   const [payConfig, setPayConfig] = useState<any>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Dynamic values from env
+  const displayAmount = Number(process.env.NEXT_PUBLIC_PAYMENT_AMOUNT) || 1300;
+  const currency = process.env.NEXT_PUBLIC_PAYMENT_CURRENCY || "KES";
 
   useEffect(() => {
-    // Generate config only on client to prevent hydration mismatch (Error #419)
     setPayConfig({
       reference: (new Date()).getTime().toString(),
       email: "prospect@flow.app",
-      amount: Number(process.env.NEXT_PUBLIC_PAYMENT_AMOUNT) || 130000,
-      currency: process.env.NEXT_PUBLIC_PAYMENT_CURRENCY || "KES",
+      // Paystack expects amount in lowest unit (cents/kobo)
+      amount: displayAmount * 100, 
+      currency: currency,
       publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
     });
-  }, []);
+  }, [displayAmount, currency]);
 
   const initializePayment = usePaystackPayment(payConfig || {});
 
   const onSuccess = (reference: any) => {
+    setIsVerifying(true);
     fetch("/api/verify-payment", {
       method: "POST",
       body: JSON.stringify({ reference: reference.reference }),
     }).then(res => res.json()).then(data => {
       if (data.success) {
         onUnlock();
+      } else {
+        alert("Payment verification failed. Please contact support.");
       }
+    }).finally(() => {
+      setIsVerifying(false);
     });
   };
 
@@ -306,11 +316,16 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
                 <div className="text-center">
                   <p className="mb-4 text-sm font-semibold text-royal-blue uppercase tracking-widest">Premium Content Locked</p>
                   <button
+                    disabled={isVerifying}
                     onClick={() => payConfig && initializePayment(onSuccess, onClose)}
-                    className="flex items-center gap-3 rounded-full bg-bright-red px-12 py-5 text-xl font-bold text-white shadow-[0_20px_50px_rgba(255,0,0,0.3)] hover:scale-105 transition-all active:scale-95 animate-pulse"
+                    className="flex items-center gap-3 rounded-full bg-bright-red px-12 py-5 text-xl font-bold text-white shadow-[0_20px_50px_rgba(255,0,0,0.3)] hover:scale-105 transition-all active:scale-95 disabled:opacity-50"
                   >
-                    <Lock className="h-6 w-6" />
-                    Unlock {leads.length - 3} More Leads for KES 1,300
+                    {isVerifying ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Lock className="h-6 w-6" />
+                    )}
+                    {isVerifying ? "Verifying..." : `Unlock ${leads.length - 3} More Leads for ${currency} ${displayAmount.toLocaleString()}`}
                   </button>
                   <p className="mt-4 text-xs text-gray-500">Secure payment via Paystack</p>
                 </div>
