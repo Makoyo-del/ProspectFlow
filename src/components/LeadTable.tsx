@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle, Ghost, Share2, Lock, Download, FileText, Phone, Globe, MessageCircle, ExternalLink, Wand2, Copy, Check, Database, Loader2 } from "lucide-react";
+import { CheckCircle, Ghost, Share2, Lock, Download, FileText, Phone, Globe, MessageCircle, ExternalLink, Wand2, Copy, Check, Database, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePaystackPayment } from "react-paystack";
 import { exportToCSV, exportToPDF } from "@/lib/export";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,6 +33,8 @@ const ensureAbsoluteUrl = (url?: string) => {
 export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProps) {
   const [payConfig, setPayConfig] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Dynamic values from env
   const displayAmount = Number(process.env.NEXT_PUBLIC_PAYMENT_AMOUNT) || 1300;
@@ -160,8 +162,8 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
               const exportLeads = leads.map((l, i) => ({
                 ...l,
                 distance: `${(l.distance / 1000).toFixed(1)}km`,
-                website: !isUnlocked && i >= 3 ? "[LOCKED - PAY TO VIEW]" : l.website,
-                phone: !isUnlocked && i >= 3 ? "[LOCKED - PAY TO VIEW]" : l.phone,
+                website: l.website,
+                phone: l.phone,
               }));
               exportToCSV(exportLeads, "prospectflow_leads");
             }}
@@ -175,8 +177,8 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
               const exportLeads = leads.map((l, i) => ({
                 ...l,
                 distance: `${(l.distance / 1000).toFixed(1)}km`,
-                website: !isUnlocked && i >= 3 ? "[LOCKED - PAY TO VIEW]" : l.website,
-                phone: !isUnlocked && i >= 3 ? "[LOCKED - PAY TO VIEW]" : l.phone,
+                website: l.website,
+                phone: l.phone,
               }));
               exportToPDF(exportLeads, "prospectflow_leads");
             }}
@@ -204,8 +206,8 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {leads.map((lead, index) => {
-                  const isMasked = !isUnlocked && index >= 3;
+                {leads.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((lead, index) => {
+                  const isMasked = false;
                   
                   const whatsappLink = `https://wa.me/${lead.phone?.replace(/\D/g, "")}?text=Hello ${encodeURIComponent(lead.name)}, I found your business on ProspectFlow...`;
                   const callLink = `tel:${lead.phone}`;
@@ -304,6 +306,71 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
               </tbody>
             </table>
 
+            {/* Pagination Controls */}
+            {leads.length > itemsPerPage && (
+              <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                <div className="flex flex-1 justify-between sm:hidden">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(leads.length / itemsPerPage)))}
+                    disabled={currentPage === Math.ceil(leads.length / itemsPerPage)}
+                    className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, leads.length)}</span> of{' '}
+                      <span className="font-medium">{leads.length}</span> leads
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                      >
+                        <span className="sr-only">Previous</span>
+                        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                      
+                      {[...Array(Math.ceil(leads.length / itemsPerPage))].map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentPage(i + 1)}
+                          className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                            currentPage === i + 1
+                              ? 'z-10 bg-royal-blue text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-royal-blue'
+                              : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(leads.length / itemsPerPage)))}
+                        disabled={currentPage === Math.ceil(leads.length / itemsPerPage)}
+                        className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                      >
+                        <span className="sr-only">Next</span>
+                        <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* AI Pitch Modal */}
             <AnimatePresence>
               {pitchContent && (
@@ -350,27 +417,6 @@ export default function LeadTable({ leads, isUnlocked, onUnlock }: LeadTableProp
             </AnimatePresence>
 
             <CRMModal isOpen={isCRMOpen} onClose={() => setIsCRMOpen(false)} />
-            
-            {!isUnlocked && leads.length > 3 && (
-              <div id="unlock" className="absolute inset-x-0 bottom-0 flex h-[350px] items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent pb-10 z-10">
-                <div className="text-center">
-                  <p className="mb-4 text-sm font-semibold text-royal-blue uppercase tracking-widest">Premium Content Locked</p>
-                  <button
-                    disabled={isVerifying}
-                    onClick={() => payConfig && initializePayment(onSuccess, onClose)}
-                    className="flex items-center gap-3 rounded-full bg-bright-red px-12 py-5 text-xl font-bold text-white shadow-[0_20px_50px_rgba(255,0,0,0.3)] hover:scale-105 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {isVerifying ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <Lock className="h-6 w-6" />
-                    )}
-                    {isVerifying ? "Verifying..." : `Unlock ${leads.length - 3} More Leads for ${currency} ${displayAmount.toLocaleString()}`}
-                  </button>
-                  <p className="mt-4 text-xs text-gray-500">Secure payment via Paystack</p>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

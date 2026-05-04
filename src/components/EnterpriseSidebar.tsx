@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Users, Building2, Terminal, TrendingUp, Lock, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Users, Building2, Terminal, TrendingUp, Lock, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 
 const COMING_SOON_FILTERS = [
   { name: "Decision Maker", icon: Users, desc: "CEO, Marketing Head, Owner" },
@@ -11,6 +12,8 @@ const COMING_SOON_FILTERS = [
 ];
 
 export default function EnterpriseSidebar() {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
     <div className="hidden lg:block w-72 flex-shrink-0">
       <div className="sticky top-8 space-y-8">
@@ -23,9 +26,25 @@ export default function EnterpriseSidebar() {
           <p className="mt-2 text-xs text-white/70 leading-relaxed">
             Unlock deep B2B insights and decision-maker data with our upcoming Enterprise module.
           </p>
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-4 flex items-center gap-2 text-xs font-bold text-vibrant-yellow hover:opacity-80 transition-all"
+          >
+            {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {isExpanded ? "Show Less" : "Explore Coming Soon"}
+          </button>
         </div>
 
-        <div className="space-y-4">
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-8 overflow-hidden"
+            >
+              <div className="space-y-4">
           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-2">Advanced Filters</h4>
           
           {COMING_SOON_FILTERS.map((filter) => (
@@ -54,13 +73,16 @@ export default function EnterpriseSidebar() {
               </div>
             </div>
           ))}
-        </div>
+            </div>
 
-        <div className="p-6 rounded-3xl border-2 border-dashed border-gray-200 text-center">
-          <p className="text-xs font-medium text-gray-500">Need a custom integration?</p>
-          <button className="mt-2 text-xs font-bold text-royal-blue hover:underline">Contact Enterprise Sales</button>
-        </div>
-      </div>
+            <div className="p-6 rounded-3xl border-2 border-dashed border-gray-200 text-center">
+              <p className="text-xs font-medium text-gray-500">Need a custom integration?</p>
+              <button className="mt-2 text-xs font-bold text-royal-blue hover:underline">Contact Enterprise Sales</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  );
+  </div>
+);
 }
