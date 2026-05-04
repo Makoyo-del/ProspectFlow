@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: prospectflow
+    env: node
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.10.0
+      - key: TOMTOM_API_KEY
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: NEXT_PUBLIC_PAYMENT_AMOUNT
+        value: "5000"
+      - key: NEXT_PUBLIC_PAYMENT_CURRENCY
+        value: "KES"
